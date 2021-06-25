@@ -19,6 +19,8 @@
  * Assumes NULL pointers are zero.
  *
  * README:
+ * By default the esyscmd and maketemp built-in macros are excluded.
+ * Set ESYSCMD_MAKETEMP to 1 to include them.
  * To compile:
  * $ cc -ansi -g -O3 -Wall -Wextra -pedantic m4.c && mv a.out m4
  * or
@@ -67,6 +69,9 @@
  * mod(5, 2)
  */
 
+/* Set to 1 to enable the esyscmd and maketemp built-in macros */
+#define ESYSCMD_MAKETEMP 0
+
 #ifdef __linux__
 #define _XOPEN_SOURCE 500
 #endif
@@ -74,11 +79,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#if ESYSCMD_MAKETEMP
 #ifdef _WIN32
 #include <io.h>
 #else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 #endif
 
 #include <stdio.h>
@@ -89,7 +96,7 @@
 #include <limits.h>
 #include <errno.h>
 
-#ifdef _WIN32
+#if ESYSCMD_MAKETEMP && defined _WIN32
 #define popen _popen
 #define pclose _pclose
 #endif
@@ -308,6 +315,7 @@ int ungetstr(struct buf *b, char *s)
     return 0;
 }
 
+#if ESYSCMD_MAKETEMP
 int esyscmd(struct buf *input, struct buf *tmp_buf, char *cmd)
 {
     FILE *fp;
@@ -348,6 +356,7 @@ int esyscmd(struct buf *input, struct buf *tmp_buf, char *cmd)
         return 1;
     return 0;
 }
+#endif
 
 struct entry *init_entry(void)
 {
@@ -434,7 +443,7 @@ int upsert_entry(struct entry **ht, char *name, char *def)
             return 1;
         }
         h = hash_str(name);
-        /* Link new entry in at head of list (the existing head could be NULL) */
+        /* Link new entry in at head of list (existing head could be NULL) */
         e->next = *(ht + h);
         *(ht + h) = e;
     } else {
@@ -674,7 +683,10 @@ int buf_dump_buf(struct buf *dst, struct buf *src)
 
 int main(int argc, char **argv)
 {
-    int ret = 0, read_stdin = 1, err, j, fd;
+    int ret = 0, read_stdin = 1, err, j;
+#if ESYSCMD_MAKETEMP && !defined _WIN32
+    int fd;
+#endif
     struct buf *input = NULL, *token = NULL, *next_token = NULL, *result =
         NULL, *tmp_buf = NULL;
     struct entry **ht = NULL, *e;
@@ -748,11 +760,13 @@ int main(int argc, char **argv)
         QUIT;
     if (upsert_entry(ht, "undivert", NULL))
         QUIT;
+#if ESYSCMD_MAKETEMP
+    if (upsert_entry(ht, "esyscmd", NULL))
+        QUIT;
     if (upsert_entry(ht, "maketemp", NULL))
         QUIT;
+#endif
     if (upsert_entry(ht, "incr", NULL))
-        QUIT;
-    if (upsert_entry(ht, "esyscmd", NULL))
         QUIT;
     if (upsert_entry(ht, "htdist", NULL))
         QUIT;
@@ -884,6 +898,7 @@ int main(int argc, char **argv)
     QUIT; \
 } while (0)
 
+#if ESYSCMD_MAKETEMP
 #ifdef _WIN32
 /* No integer overflow risk, as already a string. */
 /* This function does not actually create the file */
@@ -897,6 +912,7 @@ int main(int argc, char **argv)
         EQUIT("maketemp: Failed to close temp file"); \
 } while (0)
 #endif
+#endif
 
 #ifdef _WIN32
 #define DIRSEP "\\"
@@ -905,7 +921,7 @@ int main(int argc, char **argv)
 #endif
 
 /* Process built-in macro with args */
-#define PROCESS_BI_WITH_ARGS do { \
+#define PROCESS_BI_WITH_ARGS \
     if (!strcmp(SN, "define")) { \
         if (upsert_entry(ht, ARG(1), ARG(2))) \
             QUIT; \
@@ -1032,11 +1048,6 @@ int main(int argc, char **argv)
         DNL; \
     } else if (!strcmp(SN, "divnum")) { \
         DIVNUM; \
-    } else if (!strcmp(SN, "maketemp")) { \
-        /* ARG(1) is the template string which is modified in-place */ \
-        MAKETEMP(ARG(1)); \
-        if (ungetstr(input, ARG(1))) \
-            QUIT; \
     } else if (!strcmp(SN, "incr")) { \
         if(str_to_num(ARG(1), &n)) \
             EQUIT("incr: Invalid number"); \
@@ -1046,9 +1057,6 @@ int main(int argc, char **argv)
         snprintf(num, NUM_SIZE, "%lu", (unsigned long) n); \
         if (ungetstr(input, num)) \
             QUIT; \
-    } else if (!strcmp(SN, "esyscmd")) { \
-        if (esyscmd(input, tmp_buf, ARG(1))) \
-            EQUIT("esyscmd: Failed"); \
     } else if (!strcmp(SN, "htdist")) { \
         htdist(ht); \
     } else if (!strcmp(SN, "dirsep")) { \
@@ -1133,8 +1141,21 @@ int main(int argc, char **argv)
         snprintf(num, NUM_SIZE, "%lu", (unsigned long) w); \
         if (ungetstr(input, num)) \
             QUIT; \
-    } \
-} while (0)
+    }
+
+#if ESYSCMD_MAKETEMP
+/* These tag onto the end of the list of built-in macros with args */
+#define PROCESS_BI_WITH_ARGS_EXTRA \
+    else if (!strcmp(SN, "maketemp")) { \
+        /* ARG(1) is the template string which is modified in-place */ \
+        MAKETEMP(ARG(1)); \
+        if (ungetstr(input, ARG(1))) \
+            QUIT; \
+    } else if (!strcmp(SN, "esyscmd")) { \
+        if (esyscmd(input, tmp_buf, ARG(1))) \
+            EQUIT("esyscmd: Failed"); \
+    }
+#endif
 
 
 /* Process built-in macro with no arguments */
@@ -1232,7 +1253,11 @@ int main(int argc, char **argv)
                 /* Built-in macro */
                 if (terminate_args(stack))
                     QUIT;
-                PROCESS_BI_WITH_ARGS;
+                /* Deliberately no semicolons after these macro calls */
+                PROCESS_BI_WITH_ARGS
+#if ESYSCMD_MAKETEMP
+                    PROCESS_BI_WITH_ARGS_EXTRA
+#endif
             } else {
                 /* User defined macro */
                 if (sub_args(result, stack))
