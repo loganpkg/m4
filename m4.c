@@ -103,7 +103,7 @@
 
 #define INIT_BUF_SIZE 512
 
-#define HASH_TABLE_SIZE 1000
+#define HASH_TABLE_SIZE 16384
 
 /* size_t Addition OverFlow test */
 #define AOF(a, b) ((a) > SIZE_MAX - (b))
@@ -582,48 +582,53 @@ int put_str(struct buf *b, char *s)
 
 int sub_args(struct buf *result, struct mcall *stack)
 {
-    int dollar_enc = 0;
-    char *s = stack->def, ch;
+    char *s = stack->def, ch, h;
     struct buf *b;
     delete_buf(result);
     while ((ch = *s++)) {
         if (ch == '$') {
-            dollar_enc = 1;
-        } else if (dollar_enc && isdigit(ch) && ch != '0') {
-            if ((b = *(stack->arg_buf + (ch - '0'))) != NULL) {
-                if (b->i > BUF_FREE_SIZE(result) && grow_buf(result, b->i))
+            /* Look ahead */
+            h = *s;
+            if (isdigit(h) && h != '0') {
+                /* Arg */
+                if ((b = *(stack->arg_buf + (h - '0'))) != NULL) {
+                    if (b->i > BUF_FREE_SIZE(result)
+                        && grow_buf(result, b->i))
+                        return 1;
+                    memcpy(result->a + result->i, b->a, b->i);
+                    result->i += b->i;
+                }
+                ++s;            /* Eat */
+            } else {
+                if (ungetch(result, ch) == EOF)
                     return 1;
-                memcpy(result->a + result->i, b->a, b->i);
-                result->i += b->i;
             }
-            dollar_enc = 0;
         } else {
-            if (dollar_enc && ungetch(result, '$') == EOF)
-                return 1;
             if (ungetch(result, ch) == EOF)
                 return 1;
         }
     }
     if (ungetch(result, '\0') == EOF)
         return 1;
+
     return 0;
 }
 
 char *strip_def(char *def)
 {
-    char *d, *t, ch;
-    int dollar_enc = 0;
+    char *d, *t, ch, h;
     if ((d = strdup(def)) == NULL)
         return NULL;
     t = d;
     while ((ch = *def++)) {
         if (ch == '$') {
-            dollar_enc = 1;
-        } else if (dollar_enc && isdigit(ch) && ch != '0') {
-            dollar_enc = 0;
+            /* Look ahead */
+            h = *def;
+            if (isdigit(h) && h != '0')
+                ++def;          /* Eat */
+            else
+                *t++ = ch;
         } else {
-            if (dollar_enc)
-                *t++ = '$';
             *t++ = ch;
         }
     }
