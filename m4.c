@@ -180,7 +180,8 @@ int grow_buf(struct buf *b, size_t will_use)
         return 1;
     new_s = b->s * 2;
     if (AOF(new_s, will_use))
-        new_s += will_use;
+        return 1;
+    new_s += will_use;
     if ((t = realloc(b->a, new_s)) == NULL)
         return 1;
     b->a = t;
