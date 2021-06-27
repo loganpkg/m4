@@ -79,13 +79,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if ESYSCMD_MAKETEMP
+#if ESYSCMD_MAKETEMP && !defined _WIN32
+#include <sys/wait.h>
+#endif
+
 #ifdef _WIN32
+#include <fcntl.h>
 #include <io.h>
 #else
-#include <sys/wait.h>
 #include <unistd.h>
-#endif
 #endif
 
 #include <stdio.h>
@@ -711,6 +713,15 @@ int main(int argc, char **argv)
 
     if (argc < 1)
         return 1;
+
+#ifdef _WIN32
+    if (_setmode(_fileno(stdin), _O_BINARY) == -1)
+        return 1;
+    if (_setmode(_fileno(stdout), _O_BINARY) == -1)
+        return 1;
+    if (_setmode(_fileno(stderr), _O_BINARY) == -1)
+        return 1;
+#endif
 
     /* Setup buffers */
     if ((input = init_buf()) == NULL)
