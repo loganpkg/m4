@@ -24,7 +24,7 @@
  * To compile:
  * $ cc -ansi -g -O3 -Wall -Wextra -pedantic m4.c && mv a.out m4
  * or
- * > cl m4.c
+ * > cl /Ot /Wall /wd4820 /wd4242 /wd4244 /wd4996 /wd4710 /wd5045 /wd4706 m4.c
  * and place the executable somewhere in your PATH.
  *
  * To use:
