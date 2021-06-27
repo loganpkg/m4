@@ -16,9 +16,9 @@
 
 /*
  * m4 macro processor.
- * Assumes NULL pointers are zero.
  *
  * README:
+ * Assumes NULL pointers are zero.
  * By default the esyscmd and maketemp built-in macros are excluded.
  * Set ESYSCMD_MAKETEMP to 1 to include them.
  * To compile:
