@@ -67,6 +67,17 @@
  * sub(80, 20, 5)
  * div(5, 2)
  * mod(5, 2)
+ *
+ * References:
+ * Brian W. Kernighan and Dennis M. Ritchie, The M4 Macro Processor,
+ *     Bell Laboratories, Murray Hill, New Jersey 07974, July 1, 1977.
+ * Section 6.6 of:
+ * Brian W. Kernighan and Dennis M. Ritchie, The C Programming Language,
+ *     Second Edition, Prentice Hall Software Series, New Jersey, 1988.
+ * Clovis L. Tondo and Scott E. Gimpel, The C Answer Book, Second Edition,
+ *     PTR Prentice Hall Software Series, New Jersey, 1989.
+ * Daniel J. Bernstein's djb2 algorithm from:
+ * Hash Functions, http://www.cse.yorku.ca/~oz/hash.html
  */
 
 /* Set to 1 to enable the esyscmd and maketemp built-in macros */
