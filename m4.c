@@ -16,57 +16,7 @@
 
 /*
  * m4 macro processor.
- *
- * README:
  * Assumes NULL pointers are zero.
- * By default the esyscmd and maketemp built-in macros are excluded.
- * Set ESYSCMD_MAKETEMP to 1 to include them.
- * To compile:
- * $ cc -ansi -g -O3 -Wall -Wextra -pedantic m4.c && mv a.out m4
- * or
- * > cl /Ot /Wall /wd4820 /wd4242 /wd4244 /wd4996 /wd4710 /wd5045 /wd4706 m4.c
- * and place the executable somewhere in your PATH.
- *
- * To use:
- * $ m4 [file...]
- *
- * These are the built-in macros, presented as a mini-tutorial:
- * changequote([, ])
- * define(cool, $1 and $2)
- * cool(goat, mice)
- * undefine([cool])
- * define(cool, wow)
- * dumpdef([cool], [y], [define])
- * hello dnl this will be removed
- * divnum
- * divert(2)
- * divnum
- * cool
- * divert(6)
- * divnum
- * y
- * undivert(2)
- * divert
- * undivert
- * incr(76)
- * len(goat)
- * index(elephant, ha)
- * substr(elephant, 2, 4)
- * translit(bananas, abcs, xyz)
- * ifdef([cool], yes defined, not defined)
- * define(y, 5)
- * ifelse(y, 5, true, false)
- * esyscmd(ifelse(dirsep, /, ls, dir))
- * esyscmd(echo hello > .test)
- * include(.test)
- * maketemp(XXXXXX)
- * errprint(oops there is an error)
- * htdist
- * add(8, 2, 4)
- * mult( , 5, , 3)
- * sub(80, 20, 5)
- * div(5, 2)
- * mod(5, 2)
  *
  * References:
  * Brian W. Kernighan and Dennis M. Ritchie, The M4 Macro Processor,
