@@ -68,7 +68,7 @@ Daniel J. Bernstein's djb2 algorithm from:
 Mini-tutorial
 -------------
 These are the built-in macros, presented as a mini-tutorial:
-``
+```m4
 changequote([, ])
 define(cool, $1 and $2)
 cool(goat, mice)
